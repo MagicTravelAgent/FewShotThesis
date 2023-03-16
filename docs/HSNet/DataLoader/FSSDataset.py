@@ -1,4 +1,6 @@
 from docs.HSNet.DataLoader.CustomLoader import DatasetCustom
+from docs.HSNet.DataLoader.PASCALLoader import DatasetFSS
+
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
