@@ -42,7 +42,7 @@ def train(epoch, model, dataloader, optimizer, training):
 
     # Write evaluation results
     average_meter.write_result('Training' if training else 'Validation', epoch)
-    avg_loss = utils.mean(average_meter.loss_buf)
+    avg_loss = utils.u_mean(average_meter.loss_buf)
     miou, fb_iou = average_meter.compute_iou()
 
     return avg_loss, miou, fb_iou
@@ -54,8 +54,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hypercorrelation Squeeze Pytorch Implementation')
     parser.add_argument('--datapath', type=str, default='docs/DataSet/')
     parser.add_argument('--benchmark', type=str, default='pascal', choices=['pascal', 'coco', 'fss'])
-    parser.add_argument('--logpath', type=str, default='')
-    parser.add_argument('--bsz', type=int, default=1)
+    parser.add_argument('--logpath', type=str, default='docs/logs/models/')
+    parser.add_argument('--bsz', type=int, default=4)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--niter', type=int, default=2000)
     parser.add_argument('--nworker', type=int, default=8)
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         # Save the best model
         if val_miou > best_val_miou:
             best_val_miou = val_miou
-            torch.save(model.state_dict(), os.path.join(cls.logpath, 'best_model.pt'))
+            torch.save(model.state_dict(), os.path.join(args.logpath, 'best_model.pt'))
             print('Model saved @%d w/ val. mIoU: %5.2f.\n' % (epoch, val_miou))
 
         Logger.tbd_writer.add_scalars('data/loss', {'trn_loss': trn_loss, 'val_loss': val_loss}, epoch)

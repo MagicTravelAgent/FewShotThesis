@@ -106,8 +106,6 @@ class DatasetCustom(Dataset):
     def sample_episode(self, idx):
         query_name = self.querys[idx]
         sup_choices = self.supports.copy()
-        # print("sup,choices")
-        # print(sup_choices)
         support_names = []
 
         # while True:  # keep sampling support set if query == support
