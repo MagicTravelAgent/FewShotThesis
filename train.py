@@ -6,11 +6,12 @@ import torch.nn as nn
 import torch
 
 from docs.HSNet.Model.HSNet import HypercorrSqueezeNetwork
-# from docs.HSNet.Common.logger import Logger, AverageMeter
+from docs.HSNet.Common.logger import Logger, AverageMeter
 from docs.HSNet.Common.Evaluator import Evaluator
-from docs.HSNet.Common import utils
+from docs.HSNet.Common import Utils as utils
 from docs.HSNet.DataLoader.FSSDataset import FSSDataset
-
+import os
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 
 def train(epoch, model, dataloader, optimizer, training):
     r""" Train HSNet """
@@ -18,7 +19,7 @@ def train(epoch, model, dataloader, optimizer, training):
     # Force randomness during training / freeze randomness during testing
     utils.fix_randseed(None) if training else utils.fix_randseed(0)
     model.module.train_mode() if training else model.module.eval()
-    # average_meter = AverageMeter(dataloader.dataset)
+    average_meter = AverageMeter(dataloader.dataset)
 
     for idx, batch in enumerate(dataloader):
 
@@ -35,7 +36,7 @@ def train(epoch, model, dataloader, optimizer, training):
             optimizer.step()
 
         # 3. Evaluate prediction
-        area_inter, area_union = Evaluator.classify_prediction(pred_mask, batch)
+        area_inter, area_union, _ = Evaluator.classify_prediction(pred_mask, batch)
         average_meter.update(area_inter, area_union, batch['class_id'], loss.detach().clone())
         average_meter.write_process(idx, len(dataloader), epoch, write_batch_idx=50)
 
@@ -51,10 +52,10 @@ if __name__ == '__main__':
 
     # Arguments parsing
     parser = argparse.ArgumentParser(description='Hypercorrelation Squeeze Pytorch Implementation')
-    parser.add_argument('--datapath', type=str, default='../Datasets_HSN')
+    parser.add_argument('--datapath', type=str, default='DataSet/')
     parser.add_argument('--benchmark', type=str, default='pascal', choices=['pascal', 'coco', 'fss'])
     parser.add_argument('--logpath', type=str, default='')
-    parser.add_argument('--bsz', type=int, default=20)
+    parser.add_argument('--bsz', type=int, default=1)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--niter', type=int, default=2000)
     parser.add_argument('--nworker', type=int, default=8)

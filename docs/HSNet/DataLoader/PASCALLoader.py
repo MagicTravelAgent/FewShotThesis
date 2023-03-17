@@ -1,115 +1,148 @@
-r""" FSS-1000 few-shot semantic segmentation dataset """
+r""" PASCAL-5i few-shot semantic segmentation dataset """
 import os
-import glob
 
 from torch.utils.data import Dataset
-
 import torch.nn.functional as F
 import torch
 import PIL.Image as Image
 import numpy as np
 
 
-class DatasetFSS(Dataset):
+class DatasetPASCAL(Dataset):
     def __init__(self, datapath, fold, transform, split, shot, use_original_imgsize):
-        self.split = split
-        self.benchmark = 'fss'
+        self.split = 'val' if split in ['val', 'test'] else 'trn'
+        self.fold = fold
+        self.nfolds = 4
+        self.nclass = 20
+        self.benchmark = 'pascal'
         self.shot = shot
+        self.use_original_imgsize = use_original_imgsize
 
-        self.base_path = os.path.join(datapath, 'FSS-1000')
-
-        # Given predefined test split, load randomly generated training/val splits:
-        # (reference regarding trn/val/test splits: https://github.com/HKUSTCV/FSS-1000/issues/7))
-        with open('./data/splits/fss/%s.txt' % split, 'r') as f:
-            self.categories = f.read().split('\n')[:-1]
-        self.categories = sorted(self.categories)
+        self.img_path = os.path.join(datapath, 'VOC2012/JPEGImages/')
+        self.ann_path = os.path.join(datapath, 'VOC2012/SegmentationClassAug/')
+        self.transform = transform
 
         self.class_ids = self.build_class_ids()
         self.img_metadata = self.build_img_metadata()
-
-        self.transform = transform
+        self.img_metadata_classwise = self.build_img_metadata_classwise()
 
     def __len__(self):
-        return len(self.img_metadata)
+        return len(self.img_metadata) if self.split == 'trn' else 1000
 
     def __getitem__(self, idx):
+        idx %= len(self.img_metadata)  # for testing, as n_images < 1000
         query_name, support_names, class_sample = self.sample_episode(idx)
-        query_img, query_mask, support_imgs, support_masks = self.load_frame(query_name, support_names)
+        query_img, query_cmask, support_imgs, support_cmasks, org_qry_imsize = self.load_frame(query_name, support_names)
 
         query_img = self.transform(query_img)
-        query_mask = F.interpolate(query_mask.unsqueeze(0).unsqueeze(0).float(), query_img.size()[-2:], mode='nearest').squeeze()
+        if not self.use_original_imgsize:
+            query_cmask = F.interpolate(query_cmask.unsqueeze(0).unsqueeze(0).float(), query_img.size()[-2:], mode='nearest').squeeze()
+        query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask.float(), class_sample)
 
         support_imgs = torch.stack([self.transform(support_img) for support_img in support_imgs])
 
-        support_masks_tmp = []
-        for smask in support_masks:
-            smask = F.interpolate(smask.unsqueeze(0).unsqueeze(0).float(), support_imgs.size()[-2:], mode='nearest').squeeze()
-            support_masks_tmp.append(smask)
-        support_masks = torch.stack(support_masks_tmp)
+        support_masks = []
+        support_ignore_idxs = []
+        for scmask in support_cmasks:
+            scmask = F.interpolate(scmask.unsqueeze(0).unsqueeze(0).float(), support_imgs.size()[-2:], mode='nearest').squeeze()
+            support_mask, support_ignore_idx = self.extract_ignore_idx(scmask, class_sample)
+            support_masks.append(support_mask)
+            support_ignore_idxs.append(support_ignore_idx)
+        support_masks = torch.stack(support_masks)
+        support_ignore_idxs = torch.stack(support_ignore_idxs)
 
         batch = {'query_img': query_img,
                  'query_mask': query_mask,
                  'query_name': query_name,
+                 'query_ignore_idx': query_ignore_idx,
+
+                 'org_query_imsize': org_qry_imsize,
 
                  'support_imgs': support_imgs,
                  'support_masks': support_masks,
                  'support_names': support_names,
+                 'support_ignore_idxs': support_ignore_idxs,
 
                  'class_id': torch.tensor(class_sample)}
 
         return batch
 
+    def extract_ignore_idx(self, mask, class_id):
+        boundary = (mask / 255).floor()
+        mask[mask != class_id + 1] = 0
+        mask[mask == class_id + 1] = 1
+
+        return mask, boundary
+
     def load_frame(self, query_name, support_names):
-        query_img = Image.open(query_name).convert('RGB')
-        support_imgs = [Image.open(name).convert('RGB') for name in support_names]
-
-        query_id = query_name.split('/')[-1].split('.')[0]
-        query_name = os.path.join(os.path.dirname(query_name), query_id) + '.png'
-        support_ids = [name.split('/')[-1].split('.')[0] for name in support_names]
-        support_names = [os.path.join(os.path.dirname(name), sid) + '.png' for name, sid in zip(support_names, support_ids)]
-
+        query_img = self.read_img(query_name)
         query_mask = self.read_mask(query_name)
+        support_imgs = [self.read_img(name) for name in support_names]
         support_masks = [self.read_mask(name) for name in support_names]
 
-        return query_img, query_mask, support_imgs, support_masks
+        org_qry_imsize = query_img.size
+
+        return query_img, query_mask, support_imgs, support_masks, org_qry_imsize
 
     def read_mask(self, img_name):
-        mask = torch.tensor(np.array(Image.open(img_name).convert('L')))
-        mask[mask < 128] = 0
-        mask[mask >= 128] = 1
+        r"""Return segmentation mask in PIL Image"""
+        mask = torch.tensor(np.array(Image.open(os.path.join(self.ann_path, img_name) + '.png')))
         return mask
 
+    def read_img(self, img_name):
+        r"""Return RGB image in PIL Image"""
+        return Image.open(os.path.join(self.img_path, img_name) + '.jpg')
+
     def sample_episode(self, idx):
-        query_name = self.img_metadata[idx]
-        class_sample = self.categories.index(query_name.split('/')[-2])
-        if self.split == 'val':
-            class_sample += 520
-        elif self.split == 'test':
-            class_sample += 760
+        query_name, class_sample = self.img_metadata[idx]
 
         support_names = []
         while True:  # keep sampling support set if query == support
-            support_name = np.random.choice(range(1, 11), 1, replace=False)[0]
-            support_name = os.path.join(os.path.dirname(query_name), str(support_name)) + '.jpg'
+            support_name = np.random.choice(self.img_metadata_classwise[class_sample], 1, replace=False)[0]
             if query_name != support_name: support_names.append(support_name)
             if len(support_names) == self.shot: break
 
         return query_name, support_names, class_sample
 
     def build_class_ids(self):
+        nclass_trn = self.nclass // self.nfolds
+        class_ids_val = [self.fold * nclass_trn + i for i in range(nclass_trn)]
+        class_ids_trn = [x for x in range(self.nclass) if x not in class_ids_val]
+
         if self.split == 'trn':
-            class_ids = range(0, 520)
-        elif self.split == 'val':
-            class_ids = range(520, 760)
-        elif self.split == 'test':
-            class_ids = range(760, 1000)
-        return class_ids
+            return class_ids_trn
+        else:
+            return class_ids_val
 
     def build_img_metadata(self):
+
+        def read_metadata(split, fold_id):
+            fold_n_metadata = os.path.join('docs/HSNet/DataLoader/splits/%s/fold%d.txt' % (split, fold_id))
+            with open(fold_n_metadata, 'r') as f:
+                fold_n_metadata = f.read().split('\n')[:-1]
+            fold_n_metadata = [[data.split('__')[0], int(data.split('__')[1]) - 1] for data in fold_n_metadata]
+            return fold_n_metadata
+
         img_metadata = []
-        for cat in self.categories:
-            img_paths = sorted([path for path in glob.glob('%s/*' % os.path.join(self.base_path, cat))])
-            for img_path in img_paths:
-                if os.path.basename(img_path).split('.')[1] == 'jpg':
-                    img_metadata.append(img_path)
+        if self.split == 'trn':  # For training, read image-metadata of "the other" folds
+            for fold_id in range(self.nfolds):
+                if fold_id == self.fold:  # Skip validation fold
+                    continue
+                img_metadata += read_metadata(self.split, fold_id)
+        elif self.split == 'val':  # For validation, read image-metadata of "current" fold
+            img_metadata = read_metadata(self.split, self.fold)
+        else:
+            raise Exception('Undefined split %s: ' % self.split)
+
+        print('Total (%s) images are : %d' % (self.split, len(img_metadata)))
+
         return img_metadata
+
+    def build_img_metadata_classwise(self):
+        img_metadata_classwise = {}
+        for class_id in range(self.nclass):
+            img_metadata_classwise[class_id] = []
+
+        for img_name, img_class in self.img_metadata:
+            img_metadata_classwise[img_class] += [img_name]
+        return img_metadata_classwise
