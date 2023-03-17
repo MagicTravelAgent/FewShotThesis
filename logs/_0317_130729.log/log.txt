@@ -1,0 +1,25 @@
+
+:=========== Few-shot Seg. with HSNet ===========
+|             datapath: docs/DataSet/           
+|            benchmark: pascal                  
+|              logpath:                         
+|                  bsz: 4                       
+|                   lr: 0.001                   
+|                niter: 2000                    
+|              nworker: 8                       
+|                 fold: 0                       
+|             backbone: resnet101               
+:================================================
+
+Backbone # param.: 42605608
+Learnable # param.: 2587394
+Total # param.: 45193002
+# available GPUs: 1
+[Epoch: 00] [Batch: 0001/0250] L: 0.69128  Avg L: 0.69128  mIoU:  0.00  |  FB-IoU: 30.75
+[Epoch: 00] [Batch: 0051/0250] L: 0.28502  Avg L: 0.57587  mIoU:  0.00  |  FB-IoU: 34.92
+[Epoch: 00] [Batch: 0101/0250] L: 0.43093  Avg L: 0.51207  mIoU:  2.40  |  FB-IoU: 45.00
+[Epoch: 00] [Batch: 0151/0250] L: 0.52285  Avg L: 0.48037  mIoU:  3.75  |  FB-IoU: 50.60
+[Epoch: 00] [Batch: 0201/0250] L: 0.34428  Avg L: 0.47158  mIoU:  4.25  |  FB-IoU: 52.82
+
+*** Training [@Epoch 00] Avg L: 0.45854  mIoU:  4.73   FB-IoU: 55.02   ***
+
