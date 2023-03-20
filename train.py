@@ -52,9 +52,9 @@ if __name__ == '__main__':
 
     # Arguments parsing
     parser = argparse.ArgumentParser(description='Hypercorrelation Squeeze Pytorch Implementation')
-    parser.add_argument('--datapath', type=str, default='docs/DataSet/')
+    parser.add_argument('--datapath', type=str, default='DataSet/')
     parser.add_argument('--benchmark', type=str, default='pascal', choices=['pascal', 'coco', 'fss'])
-    parser.add_argument('--logpath', type=str, default='docs/logs/models/')
+    parser.add_argument('--logpath', type=str, default='')
     parser.add_argument('--bsz', type=int, default=4)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--niter', type=int, default=2000)
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         # Save the best model
         if val_miou > best_val_miou:
             best_val_miou = val_miou
-            torch.save(model.state_dict(), os.path.join(args.logpath, 'best_model.pt'))
+            torch.save(model.state_dict(), os.path.join(args.logpath, 'logs/models/model_val_'+str(val_miou.item())+'.pt'))
             print('Model saved @%d w/ val. mIoU: %5.2f.\n' % (epoch, val_miou))
 
         Logger.tbd_writer.add_scalars('data/loss', {'trn_loss': trn_loss, 'val_loss': val_loss}, epoch)

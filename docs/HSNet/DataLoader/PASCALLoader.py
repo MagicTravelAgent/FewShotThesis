@@ -27,7 +27,7 @@ class DatasetPASCAL(Dataset):
         self.img_metadata_classwise = self.build_img_metadata_classwise()
 
     def __len__(self):
-        return 1000
+        return 100
         return len(self.img_metadata) if self.split == 'trn' else 1000
 
     def __getitem__(self, idx):
