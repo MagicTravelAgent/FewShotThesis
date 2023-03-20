@@ -95,7 +95,7 @@ if __name__ == '__main__':
         # Save the best model
         if val_miou > best_val_miou:
             best_val_miou = val_miou
-            torch.save(model.state_dict(), os.path.join(args.logpath, 'logs/models/model_val_'+str(val_miou.item())+'.pt'))
+            torch.save(model.state_dict(), os.path.join(args.logpath, 'logs/models/model_val_'+str(val_miou.item())[0:4]+'.pt'))
             print('Model saved @%d w/ val. mIoU: %5.2f.\n' % (epoch, val_miou))
 
         Logger.tbd_writer.add_scalars('data/loss', {'trn_loss': trn_loss, 'val_loss': val_loss}, epoch)
