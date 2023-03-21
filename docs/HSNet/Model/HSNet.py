@@ -47,10 +47,6 @@ class HypercorrSqueezeNetwork(nn.Module):
             query_feats = self.extract_feats(query_img, self.backbone, self.feat_ids, self.bottleneck_ids, self.lids)
             support_feats = self.extract_feats(support_img, self.backbone, self.feat_ids, self.bottleneck_ids, self.lids)
 
-            # Lets try masking the image before it goes in to get the features - Lucas 6/12/22
-            # masked_support = self.mask_support(support_img, support_mask.clone())
-            # support_feats = self.extract_feats(masked_support, self.backbone, self.feat_ids, self.bottleneck_ids, self.lids)
-
             support_feats = self.mask_feature(support_feats, support_mask.clone())
             corr = Correlation.multilayer_correlation(query_feats, support_feats, self.stack_ids)
 
@@ -92,8 +88,8 @@ class HypercorrSqueezeNetwork(nn.Module):
         max_vote = torch.stack([max_vote, torch.ones_like(max_vote).long()])
         max_vote = max_vote.max(dim=0)[0].view(bsz, 1, 1)
         pred_mask = logit_mask_agg.float() / max_vote
-        pred_mask[pred_mask < 0.8] = 0
-        pred_mask[pred_mask >= 0.8] = 1
+        pred_mask[pred_mask < 0.5] = 0
+        pred_mask[pred_mask >= 0.5] = 1
 
         return pred_mask
 

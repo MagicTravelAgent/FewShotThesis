@@ -32,13 +32,23 @@ class DatasetPASCAL(Dataset):
 
     def __getitem__(self, idx):
         idx %= len(self.img_metadata)  # for testing, as n_images < 1000
-        query_name, support_names, class_sample = self.sample_episode(idx)
+        # I think here I will inject the negative instances
+
+        neg = np.random.rand() > .5 # this will determine if this is a negative instance or not
+
+        # here i sample the names of the query and support images so when its neg I should have a different class for sup and query
+        # class sample should be that of the support set (with the query images being sampled from a different class)
+        query_name, support_names, class_sample = self.sample_episode(idx, neg) 
+        
         query_img, query_cmask, support_imgs, support_cmasks, org_qry_imsize = self.load_frame(query_name, support_names)
 
         query_img = self.transform(query_img)
         if not self.use_original_imgsize:
             query_cmask = F.interpolate(query_cmask.unsqueeze(0).unsqueeze(0).float(), query_img.size()[-2:], mode='nearest').squeeze()
         query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask.float(), class_sample)
+
+        print("uniqeu", np.unique(query_mask))
+
 
         support_imgs = torch.stack([self.transform(support_img) for support_img in support_imgs])
 
@@ -94,8 +104,15 @@ class DatasetPASCAL(Dataset):
         r"""Return RGB image in PIL Image"""
         return Image.open(os.path.join(self.img_path, img_name) + '.jpg')
 
-    def sample_episode(self, idx):
-        query_name, class_sample = self.img_metadata[idx]
+    def sample_episode(self, idx, neg):
+        if neg:
+            query_name, class_sample = self.img_metadata[idx] # sample the query as normal, use the class sample to not sample those sup img
+            class_choice = self.class_ids.copy() # copy the possible classes in the training set 
+            class_choice.remove(class_sample) # remove the class that the query image is
+            class_sample = np.random.choice(class_choice, 1)[0] # sample a different class for supports
+
+        else:
+            query_name, class_sample = self.img_metadata[idx]
 
         support_names = []
         while True:  # keep sampling support set if query == support
@@ -136,6 +153,10 @@ class DatasetPASCAL(Dataset):
             raise Exception('Undefined split %s: ' % self.split)
 
         print('Total (%s) images are : %d' % (self.split, len(img_metadata)))
+        # meta data comes out to a list of images with each image having a class 
+        # this class is then read to find support images of that class
+        # i will make a copy of the list and just change the supposed classes 
+        # but how do I then make sure that the mask is none 
 
         return img_metadata
 
