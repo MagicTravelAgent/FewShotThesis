@@ -10,6 +10,11 @@ from docs.HSNet.Common.logger import Logger, AverageMeter
 from docs.HSNet.Common.Evaluator import Evaluator
 from docs.HSNet.Common import Utils as utils
 from docs.HSNet.DataLoader.FSSDataset import FSSDataset
+from docs.HSNet.Common.Visualizer import Visualizer
+from tqdm import tqdm
+import datetime
+
+
 import os
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:512"
 
@@ -40,6 +45,13 @@ def train(epoch, model, dataloader, optimizer, training):
         average_meter.update(area_inter, area_union, batch['class_id'], loss.detach().clone())
         average_meter.write_process(idx, len(dataloader), epoch, write_batch_idx=50)
 
+        # 4. visualise validation data
+        if not training:
+            if Visualizer.visualize:
+                Visualizer.visualize_prediction_batch(batch['support_imgs'], batch['support_masks'],
+                                                  batch['query_img'], batch['query_mask'],
+                                                  pred_mask, idx, iou_b=area_inter / area_union)
+
     # Write evaluation results
     average_meter.write_result('Training' if training else 'Validation', epoch)
     avg_loss = utils.u_mean(average_meter.loss_buf)
@@ -54,13 +66,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hypercorrelation Squeeze Pytorch Implementation')
     parser.add_argument('--datapath', type=str, default='DataSet/')
     parser.add_argument('--benchmark', type=str, default='pascal', choices=['pascal', 'coco', 'fss'])
-    parser.add_argument('--logpath', type=str, default='')
+    parser.add_argument('--logpath', type=str, default= datetime.datetime.now().__format__('_%m%d_%H%M%S'))
     parser.add_argument('--bsz', type=int, default=4)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--niter', type=int, default=2000)
     parser.add_argument('--nworker', type=int, default=8)
     parser.add_argument('--fold', type=int, default=0, choices=[0, 1, 2, 3])
     parser.add_argument('--backbone', type=str, default='resnet101', choices=['vgg16', 'resnet50', 'resnet101'])
+    parser.add_argument('--visualize', type=bool, default=True)
+
     args = parser.parse_args()
     Logger.initialize(args, training=True)
 
@@ -83,10 +97,13 @@ if __name__ == '__main__':
     dataloader_trn = FSSDataset.build_dataloader(args.benchmark, args.bsz, args.nworker, args.fold, 'trn')
     dataloader_val = FSSDataset.build_dataloader(args.benchmark, args.bsz, args.nworker, args.fold, 'val')
 
+    # Vis init
+    Visualizer.initialize(args.visualize, args.logpath)
+
     # Train HSNet
     best_val_miou = float('-inf')
     best_val_loss = float('inf')
-    for epoch in range(args.niter):
+    for epoch in tqdm(range(args.niter)):
 
         trn_loss, trn_miou, trn_fb_iou = train(epoch, model, dataloader_trn, optimizer, training=True)
         with torch.no_grad():

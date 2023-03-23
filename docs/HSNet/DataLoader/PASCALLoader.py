@@ -47,7 +47,7 @@ class DatasetPASCAL(Dataset):
             query_cmask = F.interpolate(query_cmask.unsqueeze(0).unsqueeze(0).float(), query_img.size()[-2:], mode='nearest').squeeze()
         query_mask, query_ignore_idx = self.extract_ignore_idx(query_cmask.float(), class_sample)
 
-        print("uniqeu", np.unique(query_mask))
+        # print("uniqeu", np.unique(query_mask)) shows that 50% of the query masks are blank indicating that maybe it worked?
 
 
         support_imgs = torch.stack([self.transform(support_img) for support_img in support_imgs])

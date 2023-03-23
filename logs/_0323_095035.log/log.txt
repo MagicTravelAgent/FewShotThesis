@@ -2,17 +2,17 @@
 :=========== Few-shot Seg. with HSNet ===========
 |             datapath: DataSet/                
 |            benchmark: pascal                  
-|              logpath:                         
+|              logpath: _0323_095035            
 |                  bsz: 4                       
 |                   lr: 0.001                   
 |                niter: 2000                    
 |              nworker: 8                       
 |                 fold: 0                       
 |             backbone: resnet101               
+|            visualize: True                    
 :================================================
 
 Backbone # param.: 42605608
 Learnable # param.: 2587394
 Total # param.: 45193002
 # available GPUs: 1
-[Epoch: 00] [Batch: 0001/2848] L: 0.71090  Avg L: 0.71090  mIoU:  1.77  |  FB-IoU:  3.26
