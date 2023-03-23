@@ -32,6 +32,7 @@ class Visualizer:
         qry_img_b = Utils.to_cpu(qry_img_b)
         qry_mask_b = Utils.to_cpu(qry_mask_b)
         pred_mask_b = Utils.to_cpu(pred_mask_b)
+        iou_b = Utils.to_cpu(iou_b[0])
         # cls_id_b = to_cpu(cls_id_b)
 
         for sample_idx, (spt_img, spt_mask, qry_img, qry_mask, pred_mask) in \
