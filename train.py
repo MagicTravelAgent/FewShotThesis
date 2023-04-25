@@ -76,6 +76,7 @@ if __name__ == '__main__':
     parser.add_argument('--backbone', type=str, default='resnet101', choices=['vgg16', 'resnet50', 'resnet101'])
     parser.add_argument('--visualize', type=bool, default=True)
     parser.add_argument('--neg_inst_rate', type=bool, default=True)
+    parser.add_argument('--load', type=str, default='best_model.pt')
 
 
     args = parser.parse_args()
@@ -83,6 +84,7 @@ if __name__ == '__main__':
 
     # Model initialization
     model = HypercorrSqueezeNetwork(args.backbone, False)
+    model.eval()
     Logger.log_params(model)
 
     # Device setup
@@ -90,6 +92,13 @@ if __name__ == '__main__':
     Logger.info('# available GPUs: %d' % torch.cuda.device_count())
     model = nn.DataParallel(model)
     model.to(device)
+
+    # Check for loading trained model
+    if args.load == '':
+        Logger.info("No pre-trained model selected")
+    else:
+        Logger.info("Pre-trained model selected" + str(args.load))
+        model.load_state_dict(torch.load("logs/models/" + args.load))
 
     # Helper classes (for training) initialization
     optimizer = optim.Adam([{"params": model.parameters(), "lr": args.lr}])
