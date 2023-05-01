@@ -22,6 +22,7 @@ def train(epoch, model, dataloader, optimizer, training):
     r""" Train HSNet """
 
     # Force randomness during training / freeze randomness during testing
+
     utils.fix_randseed(None) if training else utils.fix_randseed(0)
     model.module.train_mode() if training else model.module.eval()
     average_meter = AverageMeter(dataloader.dataset)
@@ -74,12 +75,17 @@ if __name__ == '__main__':
     parser.add_argument('--fold', type=int, default=0, choices=[0, 1, 2, 3])
     parser.add_argument('--backbone', type=str, default='resnet101', choices=['vgg16', 'resnet50', 'resnet101'])
     parser.add_argument('--visualize', type=bool, default=False)
+    parser.add_argument('--visualize', type=bool, default=False)
+    parser.add_argument('--neg_inst_rate', type=bool, default=True)
+    parser.add_argument('--load', type=str, default='best_model.pt')
+
 
     args = parser.parse_args()
     Logger.initialize(args, training=True)
 
     # Model initialization
     model = HypercorrSqueezeNetwork(args.backbone, False)
+    model.eval()
     Logger.log_params(model)
 
     # Device setup
@@ -88,14 +94,21 @@ if __name__ == '__main__':
     model = nn.DataParallel(model)
     model.to(device)
 
+    # Check for loading trained model
+    if args.load == '':
+        Logger.info("No pre-trained model selected")
+    else:
+        Logger.info("Pre-trained model selected" + str(args.load))
+        model.load_state_dict(torch.load("logs/models/" + args.load))
+
     # Helper classes (for training) initialization
     optimizer = optim.Adam([{"params": model.parameters(), "lr": args.lr}])
     Evaluator.initialize()
 
     # Dataset initialization
     FSSDataset.initialize(img_size=400, datapath=args.datapath, use_original_imgsize=False)
-    dataloader_trn = FSSDataset.build_dataloader(args.benchmark, args.bsz, args.nworker, args.fold, 'trn')
-    dataloader_val = FSSDataset.build_dataloader(args.benchmark, args.bsz, args.nworker, args.fold, 'val')
+    dataloader_trn = FSSDataset.build_dataloader(args.benchmark, args.bsz, args.nworker, args.fold, 'trn', args.neg_inst_rate,)
+    dataloader_val = FSSDataset.build_dataloader(args.benchmark, args.bsz, args.nworker, args.fold, 'val', args.neg_inst_rate,)
 
     # Vis init
     Visualizer.initialize(args.visualize, args.logpath)
@@ -105,7 +118,9 @@ if __name__ == '__main__':
     best_val_loss = float('inf')
     for epoch in tqdm(range(args.niter)):
 
+
         trn_loss, trn_miou, trn_fb_iou = train(epoch, model, dataloader_trn, optimizer, training=True)
+
         with torch.no_grad():
             val_loss, val_miou, val_fb_iou = train(epoch, model, dataloader_val, optimizer, training=False)
 

@@ -24,7 +24,7 @@ class FSSDataset:
                                             transforms.Normalize(cls.img_mean, cls.img_std)])
 
     @classmethod
-    def build_dataloader(cls, benchmark, bsz, nworker, fold, split, shot=1):
+    def build_dataloader(cls, benchmark, bsz, nworker, fold, split, shot=1, neg_inst_rate = True):
         # dataset = cls.datasets[benchmark](cls.datapath, transform=cls.transform, shot=shot, use_original_imgsize=cls.use_original_imgsize, experiment = experiment)
         # dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
 
@@ -34,7 +34,7 @@ class FSSDataset:
         shuffle = split == 'trn'
         nworker = nworker if split == 'trn' else 0
 
-        dataset = cls.datasets[benchmark](cls.datapath, fold=fold, transform=cls.transform, split=split, shot=shot, use_original_imgsize=cls.use_original_imgsize)
+        dataset = cls.datasets[benchmark](cls.datapath, fold=fold, transform=cls.transform, split=split, shot=shot, use_original_imgsize=cls.use_original_imgsize, neg_inst_rate = neg_inst_rate)
         dataloader = DataLoader(dataset, batch_size=bsz, shuffle=shuffle, num_workers=nworker)
 
         return dataloader

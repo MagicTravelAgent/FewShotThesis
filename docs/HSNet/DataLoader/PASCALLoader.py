@@ -9,7 +9,7 @@ import numpy as np
 
 
 class DatasetPASCAL(Dataset):
-    def __init__(self, datapath, fold, transform, split, shot, use_original_imgsize):
+    def __init__(self, datapath, fold, transform, split, shot, use_original_imgsize, neg_inst_rate):
         self.split = 'val' if split in ['val', 'test'] else 'trn'
         self.fold = fold
         self.nfolds = 4
@@ -26,15 +26,22 @@ class DatasetPASCAL(Dataset):
         self.img_metadata = self.build_img_metadata()
         self.img_metadata_classwise = self.build_img_metadata_classwise()
 
+        if (neg_inst_rate):
+            self.neg_inst_rate = 0.5
+        else:
+            self.neg_inst_rate = 0
+
+
     def __len__(self):
         # return 100
         return len(self.img_metadata) if self.split == 'trn' else 1000
 
     def __getitem__(self, idx):
+        
         idx %= len(self.img_metadata)  # for testing, as n_images < 1000
         # I think here I will inject the negative instances
 
-        neg = np.random.rand() > .5 # this will determine if this is a negative instance or not
+        neg = np.random.rand() > self.neg_inst_rate # this will determine if this is a negative instance or not
 
         # here i sample the names of the query and support images so when its neg I should have a different class for sup and query
         # class sample should be that of the support set (with the query images being sampled from a different class)
