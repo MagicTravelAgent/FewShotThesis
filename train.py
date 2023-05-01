@@ -73,7 +73,7 @@ if __name__ == '__main__':
     parser.add_argument('--nworker', type=int, default=8)
     parser.add_argument('--fold', type=int, default=0, choices=[0, 1, 2, 3])
     parser.add_argument('--backbone', type=str, default='resnet101', choices=['vgg16', 'resnet50', 'resnet101'])
-    parser.add_argument('--visualize', type=bool, default=True)
+    parser.add_argument('--visualize', type=bool, default=False)
 
     args = parser.parse_args()
     Logger.initialize(args, training=True)
