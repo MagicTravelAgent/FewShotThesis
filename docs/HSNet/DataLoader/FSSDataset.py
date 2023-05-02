@@ -1,4 +1,4 @@
-from docs.HSNet.DataLoader.CustomLoader import DatasetCustom
+# from docs.HSNet.DataLoader.CustomLoader import DatasetCustom
 from docs.HSNet.DataLoader.PASCALLoader import DatasetPASCAL
 
 from torch.utils.data import DataLoader
@@ -10,7 +10,7 @@ class FSSDataset:
     def initialize(cls, img_size, datapath, use_original_imgsize):
 
         cls.datasets = {
-            "custom": DatasetCustom,
+            # "custom": DatasetCustom,
             "pascal": DatasetPASCAL
         }
 

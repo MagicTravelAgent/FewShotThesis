@@ -75,13 +75,12 @@ if __name__ == '__main__':
     parser.add_argument('--fold', type=int, default=0, choices=[0, 1, 2, 3])
     parser.add_argument('--backbone', type=str, default='resnet101', choices=['vgg16', 'resnet50', 'resnet101'])
     parser.add_argument('--visualize', type=bool, default=False)
-    parser.add_argument('--visualize', type=bool, default=False)
     parser.add_argument('--neg_inst_rate', type=bool, default=True)
     parser.add_argument('--load', type=str, default='best_model.pt')
 
 
     args = parser.parse_args()
-    Logger.initialize(args, training=True)
+    Logger.initialize(args)
 
     # Model initialization
     model = HypercorrSqueezeNetwork(args.backbone, False)
