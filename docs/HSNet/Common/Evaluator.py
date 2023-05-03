@@ -13,10 +13,10 @@ class Evaluator:
         else:
             iou = intersection / union
 
-        if (pred_mask < 1):
+        if (y_mask < 1):
             percent_y = 0
         else:
-            percent_y = intersection / (y_mask + 1)
+            percent_y = intersection / (y_mask)
         return iou, percent_y
 
     @classmethod
@@ -25,8 +25,8 @@ class Evaluator:
         query_name = batch.get("query_name")
         output_dict = {}
         output_dict["neg_inst"] = batch.get("neg_inst").tolist()[0]
-        # here collect information about the query mask: size, globules (and their size), 
         output_dict["query_name"] = query_name[0]
+        output_dict["class_id"] = batch.get("class_id").item()
 
         # Apply ignore_index in PASCAL-5i masks (following evaluation scheme in PFE-Net (TPAMI 2020))
         if not output_dict["neg_inst"]:
@@ -41,9 +41,7 @@ class Evaluator:
         # compute intersection and union of each episode in a batch
         area_inter, area_pred, area_gt = [],  [], []
         for _pred_mask, _gt_mask in zip(pred_mask, gt_mask):
-
             _inter = _pred_mask[_pred_mask == _gt_mask]
-
             if _inter.size(0) == 0:  # as torch.histc returns error if it gets empty tensor (pytorch 1.5.1)
                 _area_inter = torch.tensor([0, 0], device=_pred_mask.device)
             else:
@@ -51,22 +49,26 @@ class Evaluator:
             area_inter.append(_area_inter)
             area_pred.append(torch.histc(_pred_mask, bins=2, min=0, max=1))
             area_gt.append(torch.histc(_gt_mask, bins=2, min=0, max=1))
+
         area_inter = torch.stack(area_inter).t()
         area_pred = torch.stack(area_pred).t()
         area_gt = torch.stack(area_gt).t()
         area_union = area_pred + area_gt - area_inter
+
+        max_size = list(gt_mask.shape[1:])
+        max_size = max_size[0] * max_size[1]
         
         output_dict["pred_mask_size_foreground"] = area_pred.tolist()[1][0]
         output_dict["pred_mask_size_background"] = area_pred.tolist()[0][0]
-        
+
         output_dict["y_mask_size_foreground"] = area_gt.tolist()[1][0]
-        output_dict["y_mask_size_background"] = area_pred.tolist()[0][0]
+        output_dict["y_mask_size_background"] = area_gt.tolist()[0][0]
 
         output_dict["intersection_size_foreground"] = area_inter.tolist()[1][0]
         output_dict["intersection_size_background"] = area_inter.tolist()[0][0]
 
-        output_dict["wrong_pred_size_foreground"] =  output_dict["pred_mask_size_foreground"] - output_dict["intersection_size_foreground"]
-        output_dict["wrong_pred_size_background"] =  output_dict["pred_mask_size_background"] - output_dict["intersection_size_background"]
+        output_dict["wrong_pred_size_foreground"] =  abs(output_dict["pred_mask_size_foreground"] - output_dict["intersection_size_foreground"])
+        output_dict["wrong_pred_size_background"] =  abs(output_dict["pred_mask_size_background"] - output_dict["intersection_size_background"])
 
         output_dict["union_foreground"] = output_dict["y_mask_size_foreground"] + output_dict["pred_mask_size_foreground"] - output_dict["intersection_size_foreground"]
         output_dict["union_background"] = output_dict["y_mask_size_background"] + output_dict["pred_mask_size_background"] - output_dict["intersection_size_background"]

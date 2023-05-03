@@ -2,7 +2,7 @@
 :=========== Few-shot Seg. with HSNet ===========
 |             datapath: DataSet/                
 |            benchmark: pascal                  
-|              logpath: TEST_0502_115532        
+|              logpath: TEST_0503_102408        
 |                  bsz: 1                       
 |              nworker: 0                       
 |                 load: best_model.pt           
