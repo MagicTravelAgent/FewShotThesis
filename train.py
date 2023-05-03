@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-    Logger.initialize(args, training=True)
+    Logger.initialize(args)
 
     # Model initialization
     model = HypercorrSqueezeNetwork(args.backbone, False)

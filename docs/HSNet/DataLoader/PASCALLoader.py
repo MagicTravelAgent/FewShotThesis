@@ -81,7 +81,8 @@ class DatasetPASCAL(Dataset):
                  'support_names': support_names,
                  'support_ignore_idxs': support_ignore_idxs,
 
-                 'class_id': torch.tensor(class_sample)}
+                 'class_id': torch.tensor(class_sample),
+                 "neg_inst": neg}
 
         return batch
 
