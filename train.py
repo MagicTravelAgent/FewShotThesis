@@ -75,7 +75,6 @@ if __name__ == '__main__':
     parser.add_argument('--fold', type=int, default=0, choices=[0, 1, 2, 3])
     parser.add_argument('--backbone', type=str, default='resnet101', choices=['vgg16', 'resnet50', 'resnet101'])
     parser.add_argument('--visualize', type=bool, default=False)
-    parser.add_argument('--visualize', type=bool, default=False)
     parser.add_argument('--neg_inst_rate', type=bool, default=True)
     parser.add_argument('--load', type=str, default='best_model.pt')
 
@@ -98,7 +97,7 @@ if __name__ == '__main__':
     if args.load == '':
         Logger.info("No pre-trained model selected")
     else:
-        Logger.info("Pre-trained model selected" + str(args.load))
+        Logger.info("Pre-trained model selected: " + str(args.load))
         model.load_state_dict(torch.load("logs/models/" + args.load))
 
     # Helper classes (for training) initialization
@@ -125,9 +124,10 @@ if __name__ == '__main__':
             val_loss, val_miou, val_fb_iou = train(epoch, model, dataloader_val, optimizer, training=False)
 
         # Save the best model
-        if val_miou > best_val_miou:
+        if val_loss < best_val_loss:
             best_val_miou = val_miou
-            torch.save(model.state_dict(), 'logs/models/model_val_'+str(val_miou.item())[0:4]+'.pt')
+            best_val_loss = val_loss
+            torch.save(model.state_dict(), 'logs/models/model_val_'+str(val_miou.item())[0:4]+"_"+str(val_loss.item())[0:4]+'.pt')
             print('Model saved @%d w/ val. mIoU: %5.2f.\n' % (epoch, val_miou))
 
         Logger.tbd_writer.add_scalars('data/loss', {'trn_loss': trn_loss, 'val_loss': val_loss}, epoch)
