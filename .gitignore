@@ -2,4 +2,6 @@ docs/HSNet/Model/res101_pas/res101_pas_fold3/best_model.pt
 DataSet/
 logs/models/
 logs/_0425_112704.log/vis/
-logs/TEST_0503_102408.log/vis/
+logs/base.log/vis/
+logs/updated.log/vis/
+logs/scratch.log/vis/

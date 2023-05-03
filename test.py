@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--bsz', type=int, default=1)
     parser.add_argument('--nworker', type=int, default=0)
-    parser.add_argument('--load', type=str, default='best_model.pt')
+    parser.add_argument('--load', type=str, default='trained from scratch/model_val_54.1.pt')
     parser.add_argument('--fold', type=int, default=2, choices=[0, 1, 2, 3])
     parser.add_argument('--nshot', type=int, default=1)
     parser.add_argument('--backbone', type=str, default='resnet101', choices=['vgg16', 'resnet50', 'resnet101'])
